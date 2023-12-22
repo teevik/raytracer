@@ -46,22 +46,29 @@ fn main() {
 
     // Camera
     let camera = {
-        let camera_center = Vec3::new(0., 0., 0.);
-        let vertical_fov = f32::to_radians(90.);
+        let camera_position = Vec3::new(-2., 2., 1.);
+        let camera_look_at = Vec3::new(0., 0., -1.);
+        let camera_up = Vec3::new(0., 1., 0.);
 
-        let focal_length = 1.;
-        let samples_per_pixel = 10;
+        let defocus_angle = f32::to_radians(10.);
+        let focus_distance = camera_position.distance(camera_look_at);
+        let vertical_fov = f32::to_radians(20.);
+
+        let samples_per_pixel = 100;
 
         Camera::new(
-            camera_center,
+            camera_position,
+            camera_look_at,
+            camera_up,
+            defocus_angle,
+            focus_distance,
             vertical_fov,
             image_size,
-            focal_length,
             samples_per_pixel,
         )
     };
 
-    let max_depth = 10;
+    let max_depth = 50;
 
     let mut image = String::new();
     image += &format!("P3\n{} {}\n255\n", image_size.x, image_size.y);
@@ -72,10 +79,9 @@ fn main() {
         .into_par_iter()
         .progress()
         .map(move |samples| {
-            let mut color = Vec3::zero();
+            let mut color = Rgb::zero();
 
-            for pixel in samples {
-                let ray = Ray::new(camera.camera_center, pixel);
+            for ray in samples {
                 color += ray_color(ray, max_depth, &world);
             }
 
@@ -84,7 +90,7 @@ fn main() {
 
             let color = color.map(|c| (c * 255.).round() as u8);
 
-            format!("{} {} {}\n", color.x, color.y, color.z)
+            format!("{} {} {}\n", color.r, color.g, color.b)
         })
         .collect::<String>();
 

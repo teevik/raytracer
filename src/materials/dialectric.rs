@@ -20,8 +20,8 @@ pub fn scatter(refraction_index: f32, ray: Ray<f32>, ray_hit: RayHit) -> Option<
     let cos_theta = f32::min(Vec3::dot(-unit_direction, ray_hit.normal), 1.);
     let sin_theta = f32::sqrt(1. - cos_theta * cos_theta);
 
-    let cannot_refract =
-        (refraction_ratio * sin_theta > 1.) || reflectance(cos_theta, refraction_ratio) > random();
+    let cannot_refract = (refraction_ratio * sin_theta > 1.)
+        || (reflectance(cos_theta, refraction_ratio) > random());
 
     let direction = if cannot_refract {
         unit_direction.reflected(ray_hit.normal)

@@ -33,7 +33,7 @@ pub fn scene_1() -> World {
         }),
         (Sphere {
             center: Vec3::new(-1., 0., -1.),
-            radius: 0.5,
+            radius: -0.4,
             material: material_left,
         }),
         (Sphere {

@@ -4,6 +4,7 @@ use vek::{Ray, Vec3};
 
 pub trait Vec3Ext<T> {
     fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<T>;
+    fn random_in_unit_disk(rng: &mut ThreadRng) -> Vec3<T>;
     fn random_unit_vector(rng: &mut ThreadRng) -> Vec3<T>;
     fn random_on_hemisphere(normal: Vec3<T>, rng: &mut ThreadRng) -> Vec3<T>;
 }
@@ -14,6 +15,19 @@ impl Vec3Ext<f32> for Vec3<f32> {
 
         loop {
             let sample = Vec3::new(random(), random(), random());
+
+            if sample.magnitude_squared() < 1. {
+                break sample;
+            }
+        }
+    }
+
+    fn random_in_unit_disk(rng: &mut ThreadRng) -> Vec3<f32> {
+        let mut random = || rng.gen_range(-1. ..=1.);
+
+        loop {
+            let sample = Vec3::new(random(), random(), 0.);
+
             if sample.magnitude_squared() < 1. {
                 break sample;
             }
