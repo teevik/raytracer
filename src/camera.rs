@@ -1,7 +1,6 @@
 use crate::extensions::Vec3Ext;
-use indicatif::ParallelProgressIterator;
 use rand::{random, thread_rng};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vek::{Ray, Vec2, Vec3};
 
 pub struct Camera {
@@ -75,11 +74,8 @@ impl Camera {
 }
 
 impl Camera {
-    fn row(
-        &self,
-        y: usize,
-    ) -> impl ParallelIterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_ {
-        (0..self.image_size.x).into_par_iter().map(move |x| {
+    fn row(&self, y: usize) -> impl Iterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_ {
+        (0..self.image_size.x).map(move |x| {
             let pixel_center = self.first_pixel
                 + (self.pixel_delta_u * x as f32)
                 + (self.pixel_delta_v * y as f32);
@@ -108,10 +104,9 @@ impl Camera {
 
     pub fn all_samples(
         &self,
-    ) -> impl ParallelIterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_ {
-        (0..self.image_size.y)
-            .into_par_iter()
-            .progress()
-            .flat_map(|y| self.row(y))
+    ) -> impl IndexedParallelIterator<
+        Item = impl Iterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_,
+    > + '_ {
+        (0..self.image_size.y).into_par_iter().map(|y| self.row(y))
     }
 }

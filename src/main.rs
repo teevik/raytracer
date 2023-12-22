@@ -7,6 +7,7 @@ mod sphere;
 mod world;
 
 use camera::Camera;
+use indicatif::ParallelProgressIterator;
 use rand::{thread_rng, Rng};
 use rayon::iter::ParallelIterator;
 use scenes::scene_3::scene_3;
@@ -39,7 +40,7 @@ fn ray_color(ray: Ray<f32>, depth_left: u32, world: &World, rng: &mut impl Rng) 
 }
 
 fn main() {
-    let image_size = Vec2::new(1920, 1080);
+    let image_size = Vec2::new(800, 400);
 
     // World
     let world = scene_3();
@@ -54,7 +55,7 @@ fn main() {
         let focus_distance = 10.;
         let vertical_fov = f32::to_radians(20.);
 
-        let samples_per_pixel = 1000;
+        let samples_per_pixel = 100;
 
         Camera::new(
             camera_position,
@@ -68,7 +69,7 @@ fn main() {
         )
     };
 
-    let max_depth = 500;
+    let max_depth = 100;
 
     let mut image = String::new();
     image += &format!("P3\n{} {}\n255\n", image_size.x, image_size.y);
@@ -77,20 +78,24 @@ fn main() {
 
     let all_samples = camera.all_samples();
     let pixels = all_samples
-        .map(move |samples| {
-            let mut color = Rgb::zero();
+        .progress()
+        .map(move |row| {
+            row.map(|samples| {
+                let mut color = Rgb::zero();
 
-            let mut rng = thread_rng();
-            for ray in samples {
-                color += ray_color(ray, max_depth, &world, &mut rng);
-            }
+                let mut rng = thread_rng();
+                for ray in samples {
+                    color += ray_color(ray, max_depth, &world, &mut rng);
+                }
 
-            color /= camera.samples_per_pixel as f32;
-            color = color.map(|c| c.sqrt()); // map from linear to gamma 2
+                color /= camera.samples_per_pixel as f32;
+                color = color.map(|c| c.sqrt()); // map from linear to gamma 2
 
-            let color = color.map(|c| (c * 255.).round() as u8);
+                let color = color.map(|c| (c * 255.).round() as u8);
 
-            format!("{} {} {}\n", color.r, color.g, color.b)
+                format!("{} {} {}\n", color.r, color.g, color.b)
+            })
+            .collect::<String>()
         })
         .collect::<String>();
 
