@@ -1,5 +1,7 @@
-use std::{fmt::Debug, ops::Range, sync::Arc};
+use std::ops::Range;
 use vek::{geom::repr_simd::Ray, vec::repr_simd::Vec3};
+
+use crate::materials::Materials;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Face {
@@ -22,7 +24,7 @@ pub struct RayHit {
     pub normal: Vec3<f32>,
 
     /// The material of the hit shape
-    pub material: Arc<dyn Material>,
+    pub material: Materials,
 }
 
 #[derive(Debug, Clone)]
@@ -34,10 +36,10 @@ pub struct ScatterResult {
     pub attenuation: Vec3<f32>,
 }
 
-pub trait Material: Debug + Send + Sync {
+pub trait Material {
     fn scatter(&self, ray: Ray<f32>, ray_hit: RayHit) -> Option<ScatterResult>;
 }
 
-pub trait Shape: Debug + Send + Sync {
+pub trait Shape {
     fn hit(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit>;
 }

@@ -2,21 +2,22 @@ mod camera;
 mod data;
 mod extensions;
 mod materials;
-mod shapes;
+mod sphere;
 mod world;
 
 use camera::Camera;
-use data::Shape;
+use data::{Material, Shape};
 use indicatif::ParallelProgressIterator;
 use materials::{dialectric::Dialectric, lambertian::Lambertian, metal::Metal};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use shapes::sphere::Sphere;
 use std::{f32::consts::PI, fs, sync::Arc};
 use vek::{
     geom::repr_simd::Ray,
     vec::repr_simd::{Vec2, Vec3},
 };
 use world::World;
+
+use crate::{materials::Materials, sphere::Sphere};
 
 fn ray_color(ray: Ray<f32>, depth_left: u32, world: &World) -> Vec3<f32> {
     if depth_left == 0 {
@@ -47,40 +48,40 @@ fn main() {
 
     // World
     let scene_1: World = {
-        let material_ground = Arc::new(Lambertian {
+        let material_ground = Materials::Lambertian(Lambertian {
             albedo: Vec3::new(0.8, 0.8, 0.),
         });
 
-        let material_center = Arc::new(Lambertian {
+        let material_center = Materials::Lambertian(Lambertian {
             albedo: Vec3::new(0.1, 0.2, 0.5),
         });
 
-        let material_left = Arc::new(Dialectric {
+        let material_left = Materials::Dialectric(Dialectric {
             refraction_index: 1.5,
         });
 
-        let material_right = Arc::new(Metal {
+        let material_right = Materials::Metal(Metal {
             albedo: Vec3::new(0.8, 0.6, 0.2),
             fuzz: 0.1,
         });
 
         vec![
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(0., -100.5, -1.),
                 radius: 100.,
                 material: material_ground,
             }),
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(0., 0., -1.),
                 radius: 0.5,
                 material: material_center,
             }),
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(-1., 0., -1.),
                 radius: 0.5,
                 material: material_left,
             }),
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(1., 0., -1.),
                 radius: 0.5,
                 material: material_right,
@@ -89,23 +90,23 @@ fn main() {
     };
 
     let scene_2: World = {
-        let material_left = Arc::new(Lambertian {
+        let material_left = Materials::Lambertian(Lambertian {
             albedo: Vec3::new(0., 0., 1.),
         });
 
-        let material_right = Arc::new(Lambertian {
+        let material_right = Materials::Lambertian(Lambertian {
             albedo: Vec3::new(1., 0., 0.),
         });
 
         let radius = f32::cos(PI / 4.);
 
         vec![
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(-radius, 0., -1.),
                 radius,
                 material: material_left,
             }),
-            Box::new(Sphere {
+            (Sphere {
                 center: Vec3::new(radius, 0., -1.),
                 radius,
                 material: material_right,
@@ -113,7 +114,7 @@ fn main() {
         ]
     };
 
-    let world = scene_2;
+    let world = scene_1;
 
     // Camera
     let camera = {

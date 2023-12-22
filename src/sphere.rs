@@ -1,15 +1,17 @@
+use std::ops::Range;
+
 use crate::{
-    data::{Face, Material, RayHit, Shape},
+    data::{Face, RayHit, Shape},
     extensions::RayExt,
+    materials::Materials,
 };
-use std::{ops::Range, sync::Arc};
 use vek::{geom::repr_simd::Ray, vec::repr_simd::Vec3};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
-    pub material: Arc<dyn Material>,
+    pub material: Materials,
 }
 
 impl Shape for Sphere {
