@@ -1,6 +1,5 @@
-use std::f32::consts::PI;
-
 use crate::{materials::Material, sphere::Sphere, world::World};
+use std::f32::consts::PI;
 use vek::{Rgb, Vec3};
 
 #[allow(dead_code)]

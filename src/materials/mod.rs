@@ -1,4 +1,5 @@
 use crate::data::{RayHit, ScatterResult};
+use rand::Rng;
 use vek::{Ray, Rgb};
 
 mod dialectric;
@@ -13,12 +14,17 @@ pub enum Material {
 }
 
 impl Material {
-    pub fn scatter(self, ray: Ray<f32>, ray_hit: RayHit) -> Option<ScatterResult> {
+    pub fn scatter(
+        self,
+        ray: Ray<f32>,
+        ray_hit: RayHit,
+        rng: &mut impl Rng,
+    ) -> Option<ScatterResult> {
         match self {
-            Material::Lambertian { albedo } => lambertian::scatter(albedo, ray_hit),
-            Material::Metal { albedo, fuzz } => metal::scatter(albedo, fuzz, ray, ray_hit),
+            Material::Lambertian { albedo } => lambertian::scatter(albedo, ray_hit, rng),
+            Material::Metal { albedo, fuzz } => metal::scatter(albedo, fuzz, ray, ray_hit, rng),
             Material::Dialectric { refraction_index } => {
-                dialectric::scatter(refraction_index, ray, ray_hit)
+                dialectric::scatter(refraction_index, ray, ray_hit, rng)
             }
         }
     }

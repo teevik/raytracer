@@ -1,16 +1,17 @@
+use rand::Rng;
+use vek::{Ray, Rgb, Vec3};
+
 use crate::data::Face;
-use rand::{rngs::ThreadRng, Rng};
-use vek::{Ray, Vec3};
 
 pub trait Vec3Ext<T> {
-    fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<T>;
-    fn random_in_unit_disk(rng: &mut ThreadRng) -> Vec3<T>;
-    fn random_unit_vector(rng: &mut ThreadRng) -> Vec3<T>;
-    fn random_on_hemisphere(normal: Vec3<T>, rng: &mut ThreadRng) -> Vec3<T>;
+    fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3<T>;
+    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3<T>;
+    fn random_unit_vector(rng: &mut impl Rng) -> Vec3<T>;
+    fn random_on_hemisphere(normal: Vec3<T>, rng: &mut impl Rng) -> Vec3<T>;
 }
 
 impl Vec3Ext<f32> for Vec3<f32> {
-    fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<f32> {
+    fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3<f32> {
         let mut random = || rng.gen_range(-1. ..=1.);
 
         loop {
@@ -22,7 +23,7 @@ impl Vec3Ext<f32> for Vec3<f32> {
         }
     }
 
-    fn random_in_unit_disk(rng: &mut ThreadRng) -> Vec3<f32> {
+    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3<f32> {
         let mut random = || rng.gen_range(-1. ..=1.);
 
         loop {
@@ -34,11 +35,11 @@ impl Vec3Ext<f32> for Vec3<f32> {
         }
     }
 
-    fn random_unit_vector(rng: &mut ThreadRng) -> Vec3<f32> {
+    fn random_unit_vector(rng: &mut impl Rng) -> Vec3<f32> {
         Self::random_in_unit_sphere(rng).normalized()
     }
 
-    fn random_on_hemisphere(normal: Vec3<f32>, rng: &mut ThreadRng) -> Vec3<f32> {
+    fn random_on_hemisphere(normal: Vec3<f32>, rng: &mut impl Rng) -> Vec3<f32> {
         let on_unit_sphere = Self::random_unit_vector(rng);
 
         if on_unit_sphere.dot(normal) > 0. {
@@ -46,6 +47,16 @@ impl Vec3Ext<f32> for Vec3<f32> {
         } else {
             -on_unit_sphere
         }
+    }
+}
+
+pub trait RgbExt<T> {
+    fn random(rng: &mut impl Rng) -> Rgb<T>;
+}
+
+impl RgbExt<f32> for Rgb<f32> {
+    fn random(rng: &mut impl Rng) -> Rgb<f32> {
+        Rgb::new(rng.gen(), rng.gen(), rng.gen())
     }
 }
 

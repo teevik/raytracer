@@ -2,7 +2,7 @@ use crate::{
     data::{RayHit, ScatterResult},
     extensions::Vec3Ext,
 };
-use rand::thread_rng;
+use rand::Rng;
 use std::option::Option;
 use vek::{Ray, Rgb, Vec3};
 
@@ -11,12 +11,13 @@ pub fn scatter(
     fuzz: f32,
     ray: Ray<f32>,
     ray_hit: RayHit,
+    rng: &mut impl Rng,
 ) -> Option<ScatterResult> {
     let reflected = ray.direction.normalized().reflected(ray_hit.normal);
 
     let scattered = Ray::new(
         ray_hit.point,
-        reflected + Vec3::random_unit_vector(&mut thread_rng()) * fuzz,
+        reflected + Vec3::random_unit_vector(rng) * fuzz,
     );
     let attenuation = albedo;
 

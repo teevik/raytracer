@@ -1,7 +1,6 @@
+use crate::{data::RayHit, sphere::Sphere};
 use std::ops::Range;
 use vek::Ray;
-
-use crate::{data::RayHit, sphere::Sphere};
 
 pub struct World(pub Vec<Sphere>);
 

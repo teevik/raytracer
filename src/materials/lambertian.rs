@@ -2,12 +2,12 @@ use crate::{
     data::{RayHit, ScatterResult},
     extensions::Vec3Ext,
 };
-use rand::thread_rng;
+use rand::Rng;
 use std::option::Option;
 use vek::{Ray, Rgb, Vec3};
 
-pub fn scatter(albedo: Rgb<f32>, ray_hit: RayHit) -> Option<ScatterResult> {
-    let mut scatter_direction = ray_hit.normal + Vec3::random_unit_vector(&mut thread_rng());
+pub fn scatter(albedo: Rgb<f32>, ray_hit: RayHit, rng: &mut impl Rng) -> Option<ScatterResult> {
+    let mut scatter_direction = ray_hit.normal + Vec3::random_unit_vector(rng);
 
     // Catch degenerate scatter direction
     if scatter_direction.is_approx_zero() {

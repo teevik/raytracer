@@ -1,8 +1,8 @@
-use itertools::Itertools;
-use rand::{random, thread_rng};
-use vek::{Ray, Vec2, Vec3};
-
 use crate::extensions::Vec3Ext;
+use indicatif::ParallelProgressIterator;
+use rand::{random, thread_rng};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use vek::{Ray, Vec2, Vec3};
 
 pub struct Camera {
     camera_position: Vec3<f32>,
@@ -75,37 +75,43 @@ impl Camera {
 }
 
 impl Camera {
-    pub fn all_samples(&self) -> Vec<Vec<Ray<f32>>> {
-        let row = |y| {
-            (0..self.image_size.x).map(move |x| {
-                let pixel_center = self.first_pixel
-                    + (self.pixel_delta_u * x as f32)
-                    + (self.pixel_delta_v * y as f32);
+    fn row(
+        &self,
+        y: usize,
+    ) -> impl ParallelIterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_ {
+        (0..self.image_size.x).into_par_iter().map(move |x| {
+            let pixel_center = self.first_pixel
+                + (self.pixel_delta_u * x as f32)
+                + (self.pixel_delta_v * y as f32);
 
-                (0..self.samples_per_pixel)
-                    .map(move |_| {
-                        let origin = if self.defocus_angle > 0. {
-                            let offset = Vec3::random_in_unit_disk(&mut thread_rng());
+            (0..self.samples_per_pixel).map(move |_| {
+                let origin = if self.defocus_angle > 0. {
+                    let offset = Vec3::random_in_unit_disk(&mut thread_rng());
 
-                            self.camera_position
-                                + offset.x * self.defocus_disk_u
-                                + offset.y * self.defocus_disk_v
-                        } else {
-                            self.camera_position
-                        };
+                    self.camera_position
+                        + offset.x * self.defocus_disk_u
+                        + offset.y * self.defocus_disk_v
+                } else {
+                    self.camera_position
+                };
 
-                        let sample_offset = (random::<f32>() - 0.5) * self.pixel_delta_u
-                            + (random::<f32>() - 0.5) * self.pixel_delta_v;
+                let sample_offset = (random::<f32>() - 0.5) * self.pixel_delta_u
+                    + (random::<f32>() - 0.5) * self.pixel_delta_v;
 
-                        let sample_position = pixel_center + sample_offset;
-                        let direction = sample_position - origin;
+                let sample_position = pixel_center + sample_offset;
+                let direction = sample_position - origin;
 
-                        Ray::new(origin, direction)
-                    })
-                    .collect_vec()
+                Ray::new(origin, direction)
             })
-        };
+        })
+    }
 
-        (0..self.image_size.y).flat_map(row).collect_vec()
+    pub fn all_samples(
+        &self,
+    ) -> impl ParallelIterator<Item = impl Iterator<Item = Ray<f32>> + '_> + '_ {
+        (0..self.image_size.y)
+            .into_par_iter()
+            .progress()
+            .flat_map(|y| self.row(y))
     }
 }
