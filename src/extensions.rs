@@ -1,15 +1,14 @@
-use rand::{rngs::ThreadRng, Rng};
-use vek::{geom::repr_simd::Ray, vec::repr_simd::Vec3};
-
 use crate::data::Face;
+use rand::{rngs::ThreadRng, Rng};
+use vek::{Ray, Vec3};
 
-pub trait Vec3Ext {
-    fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<f32>;
-    fn random_unit_vector(rng: &mut ThreadRng) -> Vec3<f32>;
-    fn random_on_hemisphere(normal: Vec3<f32>, rng: &mut ThreadRng) -> Vec3<f32>;
+pub trait Vec3Ext<T> {
+    fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<T>;
+    fn random_unit_vector(rng: &mut ThreadRng) -> Vec3<T>;
+    fn random_on_hemisphere(normal: Vec3<T>, rng: &mut ThreadRng) -> Vec3<T>;
 }
 
-impl Vec3Ext for Vec3<f32> {
+impl Vec3Ext<f32> for Vec3<f32> {
     fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3<f32> {
         let mut random = || rng.gen_range(-1. ..=1.);
 
@@ -36,13 +35,13 @@ impl Vec3Ext for Vec3<f32> {
     }
 }
 
-pub trait RayExt {
-    fn at(self, t: f32) -> Vec3<f32>;
+pub trait RayExt<T> {
+    fn at(self, t: T) -> Vec3<T>;
 
-    fn get_face(self, outward_normal: Vec3<f32>) -> Face;
+    fn get_face(self, outward_normal: Vec3<T>) -> Face;
 }
 
-impl RayExt for Ray<f32> {
+impl RayExt<f32> for Ray<f32> {
     fn at(self, t: f32) -> Vec3<f32> {
         self.origin + (self.direction * t)
     }

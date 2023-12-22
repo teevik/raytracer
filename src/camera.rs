@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rand::random;
-use vek::vec::repr_simd::{Vec2, Vec3};
+use vek::{Vec2, Vec3};
 
 pub struct Camera {
     pub camera_center: Vec3<f32>,
@@ -45,23 +45,23 @@ impl Camera {
 
         let first_pixel = viewport_upper_left + (pixel_delta / 2.);
 
-        (0..self.image_size.y)
-            .flat_map(move |y| {
-                (0..self.image_size.x).map(move |x| {
-                    let pixel = Vec2::new(x, y);
-                    let pixel_center = first_pixel + (pixel_delta * pixel.as_::<f32>());
-                    (0..self.samples_per_pixel)
-                        .map(move |_| {
-                            let sample_offset =
-                                Vec2::new(random::<f32>() - 0.5, random::<f32>() - 0.5)
-                                    * pixel_delta;
-                            let sample_position = pixel_center + sample_offset;
+        let row = |y| {
+            (0..self.image_size.x).map(move |x| {
+                let pixel = Vec2::new(x, y);
+                let pixel_center = first_pixel + (pixel_delta * pixel.as_::<f32>());
 
-                            sample_position - self.camera_center
-                        })
-                        .collect_vec()
-                })
+                (0..self.samples_per_pixel)
+                    .map(move |_| {
+                        let sample_offset =
+                            Vec2::new(random::<f32>() - 0.5, random::<f32>() - 0.5) * pixel_delta;
+                        let sample_position = pixel_center + sample_offset;
+
+                        sample_position - self.camera_center
+                    })
+                    .collect_vec()
             })
-            .collect_vec()
+        };
+
+        (0..self.image_size.y).flat_map(row).collect_vec()
     }
 }

@@ -1,26 +1,25 @@
-use vek::geom::repr_simd::Ray;
+use crate::data::{RayHit, ScatterResult};
+use vek::{Ray, Rgb};
 
-use crate::data::{Material, RayHit, ScatterResult};
+mod dialectric;
+mod lambertian;
+mod metal;
 
-use self::{dialectric::Dialectric, lambertian::Lambertian, metal::Metal};
-
-pub mod dialectric;
-pub mod lambertian;
-pub mod metal;
-
-#[derive(Debug, Clone)]
-pub enum Materials {
-    Lambertian(Lambertian),
-    Metal(Metal),
-    Dialectric(Dialectric),
+#[derive(Debug, Clone, Copy)]
+pub enum Material {
+    Lambertian { albedo: Rgb<f32> },
+    Metal { albedo: Rgb<f32>, fuzz: f32 },
+    Dialectric { refraction_index: f32 },
 }
 
-impl Material for Materials {
-    fn scatter(&self, ray: Ray<f32>, ray_hit: RayHit) -> Option<ScatterResult> {
+impl Material {
+    pub fn scatter(self, ray: Ray<f32>, ray_hit: RayHit) -> Option<ScatterResult> {
         match self {
-            Materials::Lambertian(lambertian) => lambertian.scatter(ray, ray_hit),
-            Materials::Metal(metal) => metal.scatter(ray, ray_hit),
-            Materials::Dialectric(dialectric) => dialectric.scatter(ray, ray_hit),
+            Material::Lambertian { albedo } => lambertian::scatter(albedo, ray_hit),
+            Material::Metal { albedo, fuzz } => metal::scatter(albedo, fuzz, ray, ray_hit),
+            Material::Dialectric { refraction_index } => {
+                dialectric::scatter(refraction_index, ray, ray_hit)
+            }
         }
     }
 }

@@ -1,7 +1,5 @@
-use std::ops::Range;
-use vek::{geom::repr_simd::Ray, vec::repr_simd::Vec3};
-
-use crate::materials::Materials;
+use crate::materials::Material;
+use vek::{Ray, Rgb, Vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Face {
@@ -24,7 +22,7 @@ pub struct RayHit {
     pub normal: Vec3<f32>,
 
     /// The material of the hit shape
-    pub material: Materials,
+    pub material: Material,
 }
 
 #[derive(Debug, Clone)]
@@ -33,13 +31,5 @@ pub struct ScatterResult {
     pub scattered: Ray<f32>,
 
     /// The color produced from scattering
-    pub attenuation: Vec3<f32>,
-}
-
-pub trait Material {
-    fn scatter(&self, ray: Ray<f32>, ray_hit: RayHit) -> Option<ScatterResult>;
-}
-
-pub trait Shape {
-    fn hit(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit>;
+    pub attenuation: Rgb<f32>,
 }

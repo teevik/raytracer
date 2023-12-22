@@ -1,21 +1,20 @@
-use std::ops::Range;
-
 use crate::{
-    data::{Face, RayHit, Shape},
+    data::{Face, RayHit},
     extensions::RayExt,
-    materials::Materials,
+    materials::Material,
 };
-use vek::{geom::repr_simd::Ray, vec::repr_simd::Vec3};
+use std::ops::Range;
+use vek::{Ray, Vec3};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
-    pub material: Materials,
+    pub material: Material,
 }
 
-impl Shape for Sphere {
-    fn hit(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
+impl Sphere {
+    pub fn raytrace(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
         let center_to_origin = ray.origin - self.center;
         let a = ray.direction.magnitude_squared();
         let half_b = Vec3::dot(center_to_origin, ray.direction);
@@ -49,12 +48,14 @@ impl Shape for Sphere {
             Face::Back => -outward_normal,
         };
 
+        let material = self.material;
+
         Some(RayHit {
             distance,
             point,
             face,
             normal,
-            material: self.material.clone(),
+            material,
         })
     }
 }
