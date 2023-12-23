@@ -1,11 +1,28 @@
 use rand::Rng;
-use vek::{Ray, Rgb, Vec3};
+use vek::{Ray, Rgb, Vec2, Vec3};
 
 use crate::data::Face;
 
+pub trait Vec2Ext<T> {
+    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec2<T>;
+}
+
+impl Vec2Ext<f32> for Vec2<f32> {
+    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec2<f32> {
+        let mut random = || rng.gen_range(-1. ..=1.);
+
+        loop {
+            let sample = Vec2::new(random(), random());
+
+            if sample.magnitude_squared() < 1. {
+                break sample;
+            }
+        }
+    }
+}
+
 pub trait Vec3Ext<T> {
     fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3<T>;
-    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3<T>;
     fn random_unit_vector(rng: &mut impl Rng) -> Vec3<T>;
     fn random_on_hemisphere(normal: Vec3<T>, rng: &mut impl Rng) -> Vec3<T>;
 }
@@ -16,18 +33,6 @@ impl Vec3Ext<f32> for Vec3<f32> {
 
         loop {
             let sample = Vec3::new(random(), random(), random());
-
-            if sample.magnitude_squared() < 1. {
-                break sample;
-            }
-        }
-    }
-
-    fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3<f32> {
-        let mut random = || rng.gen_range(-1. ..=1.);
-
-        loop {
-            let sample = Vec3::new(random(), random(), 0.);
 
             if sample.magnitude_squared() < 1. {
                 break sample;
@@ -47,6 +52,21 @@ impl Vec3Ext<f32> for Vec3<f32> {
         } else {
             -on_unit_sphere
         }
+    }
+}
+
+pub trait Vec3InVec2Ext<T> {
+    fn div_elements(self, other: Vec2<T>) -> Self;
+    fn mul_elements(self, other: Vec2<T>) -> Self;
+}
+
+impl Vec3InVec2Ext<f32> for Vec2<Vec3<f32>> {
+    fn div_elements(self, other: Vec2<f32>) -> Self {
+        Vec2::new(self.x / other.x, self.y / other.y)
+    }
+
+    fn mul_elements(self, other: Vec2<f32>) -> Self {
+        Vec2::new(self.x * other.x, self.y * other.y)
     }
 }
 
