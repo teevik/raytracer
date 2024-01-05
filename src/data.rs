@@ -1,6 +1,10 @@
 use crate::materials::Material;
 use vek::{Ray, Rgb, Vec3};
 
+pub trait Raycastable {
+    fn raycast(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit>;
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Face {
     Front,

@@ -1,4 +1,5 @@
 use crate::{
+    bvh::Aabb,
     data::{Face, RayHit},
     extensions::RayExt,
     materials::Material,
@@ -14,7 +15,13 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn raytrace(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
+    pub fn get_aabb(self) -> Aabb {
+        let radius = Vec3::broadcast(self.radius);
+
+        Aabb::from_extremes(self.center - radius, self.center + radius)
+    }
+
+    pub fn raycast(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
         let center_to_origin = ray.origin - self.center;
         let a = ray.direction.magnitude_squared();
         let half_b = Vec3::dot(center_to_origin, ray.direction);

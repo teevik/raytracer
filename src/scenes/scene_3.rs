@@ -1,47 +1,56 @@
-use crate::{extensions::RgbExt, materials::Material, sphere::Sphere, world::World};
+use crate::camera::Camera;
+use crate::scenes::Scene;
+use crate::{extensions::RgbExt, materials::Material, sphere::Sphere};
 use rand::{thread_rng, Rng};
 use vek::{Rgb, Vec3};
 
 #[allow(dead_code)]
-pub fn scene_3() -> World {
-    let mut world = Vec::new();
+pub fn scene_3() -> Scene {
+    let camera = Camera {
+        position: Vec3::new(13., 2., 3.),
+        target: Vec3::new(0., 0., 0.),
+        up: Vec3::new(0., 1., 0.),
 
-    // Ground
-    world.push(Sphere {
-        center: Vec3::new(0., -1000., 0.),
-        radius: 1000.,
-        material: Material::Lambertian {
-            albedo: Rgb::new(0.5, 0.5, 0.5),
-        },
-    });
+        vertical_fov: (20_f32).to_radians(),
+        defocus_angle: (0_f32).to_radians(),
+        focus_distance: 10.,
+    };
 
-    // Center sphere
-    world.push(Sphere {
-        center: Vec3::new(0., 1., 0.),
-        radius: 1.,
-        material: Material::Dialectric {
-            refraction_index: 1.5,
+    let mut spheres = vec![
+        // Ground
+        Sphere {
+            center: Vec3::new(0., -1000., 0.),
+            radius: 1000.,
+            material: Material::Diffuse {
+                albedo: Rgb::new(0.5, 0.5, 0.5),
+            },
         },
-    });
-
-    // Left sphere
-    world.push(Sphere {
-        center: Vec3::new(-4., 1., 0.),
-        radius: 1.,
-        material: Material::Lambertian {
-            albedo: Rgb::new(0.4, 0.2, 0.1),
+        // Center sphere
+        Sphere {
+            center: Vec3::new(0., 1., 0.),
+            radius: 1.,
+            material: Material::Glass {
+                refraction_index: 1.5,
+            },
         },
-    });
-
-    // Right sphere
-    world.push(Sphere {
-        center: Vec3::new(4., 1., 0.),
-        radius: 1.,
-        material: Material::Metal {
-            albedo: Rgb::new(0.7, 0.6, 0.5),
-            fuzz: 0.,
+        // Left sphere
+        Sphere {
+            center: Vec3::new(-4., 1., 0.),
+            radius: 1.,
+            material: Material::Diffuse {
+                albedo: Rgb::new(0.4, 0.2, 0.1),
+            },
         },
-    });
+        // Right sphere
+        Sphere {
+            center: Vec3::new(4., 1., 0.),
+            radius: 1.,
+            material: Material::Metal {
+                albedo: Rgb::new(0.7, 0.6, 0.5),
+                fuzz: 0.,
+            },
+        },
+    ];
 
     let rng = &mut thread_rng();
 
@@ -59,10 +68,10 @@ pub fn scene_3() -> World {
                     // Diffuse
                     let albedo = Rgb::random(rng) * Rgb::random(rng);
 
-                    world.push(Sphere {
+                    spheres.push(Sphere {
                         center,
                         radius: 0.2,
-                        material: Material::Lambertian { albedo },
+                        material: Material::Diffuse { albedo },
                     });
                 } else if choose_material < 0.95 {
                     // Metal
@@ -70,16 +79,16 @@ pub fn scene_3() -> World {
                     let albedo = Rgb::new(random(), random(), random());
                     let fuzz = rng.gen_range(0. ..0.5);
 
-                    world.push(Sphere {
+                    spheres.push(Sphere {
                         center,
                         radius: 0.2,
                         material: Material::Metal { albedo, fuzz },
                     });
                 } else {
-                    world.push(Sphere {
+                    spheres.push(Sphere {
                         center,
                         radius: 0.2,
-                        material: Material::Dialectric {
+                        material: Material::Glass {
                             refraction_index: 1.5,
                         },
                     });
@@ -88,5 +97,5 @@ pub fn scene_3() -> World {
         }
     }
 
-    World(world)
+    Scene { camera, spheres }
 }

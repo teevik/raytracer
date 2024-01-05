@@ -1,110 +1,136 @@
+mod bvh;
 mod camera;
 mod data;
 mod extensions;
+mod interval;
 mod materials;
 mod scenes;
 mod sphere;
-mod world;
 
-use crate::scenes::scene_3::scene_3;
-use camera::Camera;
+use crate::camera::calculate_viewport;
+use crate::data::RayHit;
+use crate::extensions::Vec2Ext;
+use crate::scenes::scene_1::scene_1;
+use crate::scenes::Scene;
+use crate::sphere::Sphere;
 use indicatif::ParallelProgressIterator;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::ops::Range;
 use std::{fs, time::Instant};
 use vek::{Ray, Rgb, Vec2, Vec3};
-use world::World;
 
-fn ray_color(ray: Ray<f32>, depth_left: u32, world: &World, rng: &mut impl Rng) -> Rgb<f32> {
-    if depth_left == 0 {
-        return Rgb::black();
-    }
+pub fn raycast_spheres(spheres: &[Sphere], ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
+    let mut closest_hit = None;
+    let mut closest_distance = range.end;
 
-    // World hit
-    let ray_hit = world.raytrace(ray, 0.001..f32::INFINITY);
-
-    if let Some(ray_hit) = ray_hit {
-        if let Some(scatter_result) = ray_hit.material.scatter(ray, ray_hit, rng) {
-            return scatter_result.attenuation
-                * ray_color(scatter_result.scattered, depth_left - 1, world, rng);
-        } else {
-            return Rgb::black();
+    for sphere in spheres {
+        if let Some(hit) = sphere.raycast(ray, range.start..closest_distance) {
+            closest_distance = hit.distance;
+            closest_hit = Some(hit);
         }
     }
 
-    // Background gradient
-    let unit_direction = ray.direction.normalized();
-    let a = (unit_direction.y + 1.) / 2.;
+    closest_hit
+}
 
-    Rgb::broadcast(1. - a) + (a * Rgb::new(0.5, 0.7, 1.0))
+fn ray_color(ray: Ray<f32>, spheres: &[Sphere], max_depth: u32, rng: &mut impl Rng) -> Vec3<f32> {
+    let mut accumulated_color = Vec3::one();
+    let mut next_ray = ray;
+
+    for _ in 0..max_depth {
+        if let Some(ray_hit) = raycast_spheres(spheres, next_ray, 0.001..f32::INFINITY) {
+            if let Some(scatter_result) = ray_hit.material.scatter(next_ray, ray_hit, rng) {
+                accumulated_color *= scatter_result.attenuation;
+                next_ray = scatter_result.scattered;
+            } else {
+                // Didn't scatter
+                return Vec3::zero();
+            }
+        } else {
+            // Didn't hit anything
+            let unit_direction = next_ray.direction.normalized();
+            let a = (unit_direction.y + 1.) / 2.;
+            let background_color = Vec3::broadcast(1. - a) + a * Vec3::new(0.5, 0.7, 1.);
+
+            accumulated_color *= background_color;
+
+            return accumulated_color;
+        }
+    }
+
+    // Reached max depth
+    Vec3::zero()
+}
+
+fn pixel_sample_offset(rng: &mut impl Rng) -> Vec2<f32> {
+    Vec2::new(rng.gen(), rng.gen()) - (Vec2::broadcast(0.5)) // From -0.5 to 0.5
+}
+
+fn defocus_sample_offset(rng: &mut impl Rng) -> Vec2<f32> {
+    Vec2::random_in_unit_disk(rng)
 }
 
 fn main() {
-    let image_size = Vec2::new(800, 400);
+    let image_size = Vec2::<u32>::new(800, 400);
+    let amount_of_samples = 50;
+    let max_depth = 50;
 
-    // World
-    let world = scene_3();
+    let Scene { camera, spheres } = scene_1();
+    let viewport = calculate_viewport(camera, image_size);
 
-    // Camera
-    let camera = {
-        let camera_position = Vec3::new(13., 2., 3.);
-        let camera_target = Vec3::new(0., 0., 0.);
-        let camera_up = Vec3::new(0., 1., 0.);
-
-        let defocus_angle = f32::to_radians(0.6);
-        let focus_distance = 10.;
-        let vertical_fov = f32::to_radians(20.);
-
-        let samples_per_pixel = 10;
-
-        Camera::new(
-            camera_position,
-            camera_target,
-            camera_up,
-            defocus_angle,
-            focus_distance,
-            vertical_fov,
-            image_size,
-            samples_per_pixel,
-        )
-    };
-
-    let max_depth = 10;
-
-    let mut image = String::new();
-    image += &format!("P3\n{} {}\n255\n", image_size.x, image_size.y);
+    // Raytracing
+    let mut ppm = String::new();
+    ppm += &format!("P3\n{} {}\n255\n", image_size.x, image_size.y);
 
     let start_time = Instant::now();
 
-    // let all_samples = camera.all_samples().progress().flatten();
-    let all_samples = camera.all_samples_vec().into_par_iter().progress();
-
-    let pixels = all_samples
-        .map(move |row| {
+    let rows = (0..image_size.y).into_par_iter().progress();
+    let image = rows
+        .map(|y| {
             let mut rng = SmallRng::from_entropy();
+            let mut pixels = String::new();
 
-            row.into_iter()
-                .map(|samples| {
-                    let mut color = Rgb::zero();
+            for x in 0..image_size.x {
+                let pixel_position = Vec2::new(x, y);
 
-                    for ray in samples {
-                        color += ray_color(ray, max_depth, &world, &mut rng);
-                    }
+                let mut color = Rgb::zero();
 
-                    color /= camera.samples_per_pixel as f32;
-                    color = color.map(|c| c.sqrt()); // map from linear to gamma 2
+                for _ in 0..amount_of_samples {
+                    let sample_position =
+                        pixel_position.as_::<f32>() + pixel_sample_offset(&mut rng);
 
-                    let color = color.map(|c| (c * 255.).round() as u8);
+                    let pixel_center = viewport.upper_left_pixel_position
+                        + sample_position.x * viewport.horizontal_pixel_delta
+                        + sample_position.y * viewport.vertical_pixel_delta;
 
-                    format!("{} {} {}\n", color.r, color.g, color.b)
-                })
-                .collect::<String>()
+                    let defocus_offset = defocus_sample_offset(&mut rng);
+                    let ray_origin = viewport.origin
+                        + defocus_offset.x * viewport.horizontal_defocus_disk
+                        + defocus_offset.y * viewport.vertical_defocus_disk;
+
+                    let ray_direction = pixel_center - ray_origin;
+
+                    let ray = Ray::new(ray_origin, ray_direction);
+
+                    color += ray_color(ray, &spheres, max_depth, &mut rng);
+                }
+
+                color /= amount_of_samples as f32;
+                color = color.map(|c| c.sqrt()); // map from linear to gamma 2
+
+                let color = color.map(|c| (c * 255.).round() as u8);
+
+                pixels += &format!("{} {} {}\n", color.r, color.g, color.b);
+            }
+
+            pixels
         })
         .collect::<String>();
 
     println!("Time taken: {:.2}s", start_time.elapsed().as_secs_f32());
 
-    image += &pixels;
+    ppm += &image;
 
-    fs::write("image.ppm", image).unwrap();
+    fs::write("image.ppm", ppm).unwrap();
 }
