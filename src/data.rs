@@ -1,5 +1,5 @@
 use crate::{bvh::Aabb, interval::Interval, materials::Material};
-use vek::{Ray, Rgb, Vec3};
+use vek::{Ray, Rgb, Vec2, Vec3};
 
 pub trait Hittable {
     fn bounding_box(&self) -> Aabb;
@@ -26,6 +26,9 @@ pub struct RayHit {
 
     /// Normal, unit length
     pub normal: Vec3<f32>,
+
+    /// Texture coordinate
+    pub uv: Vec2<f32>,
 
     /// The material of the hit shape
     pub material: Material,

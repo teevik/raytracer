@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{
     bvh::Aabb,
     data::{Face, Hittable, RayHit},
@@ -5,13 +7,23 @@ use crate::{
     interval::Interval,
     materials::Material,
 };
-use vek::{Ray, Vec3};
+use vek::{Ray, Vec2, Vec3};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
     pub material: Material,
+}
+
+fn calculate_sphere_uv(point: Vec3<f32>) -> Vec2<f32> {
+    let theta = f32::acos(-point.y);
+    let phi = f32::atan2(-point.z, point.x) + PI;
+
+    let u = phi / (2. * PI);
+    let v = theta / PI;
+
+    Vec2::new(u, v)
 }
 
 impl Hittable for Sphere {
@@ -55,13 +67,16 @@ impl Hittable for Sphere {
             Face::Back => -outward_normal,
         };
 
-        let material = self.material;
+        let uv = calculate_sphere_uv(outward_normal);
+
+        let material = self.material.clone();
 
         Some(RayHit {
             distance,
             point,
             face,
             normal,
+            uv,
             material,
         })
     }

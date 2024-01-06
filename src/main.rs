@@ -9,7 +9,7 @@ mod sphere;
 
 use crate::data::RayHit;
 use crate::extensions::Vec2Ext;
-use crate::scenes::scene_3::scene_3;
+use crate::scenes::two_perlin_spheres::two_perlin_spheres_scene;
 use crate::scenes::Scene;
 use crate::{bvh::BvhNode, camera::calculate_viewport};
 use bvh::Aabb;
@@ -45,7 +45,7 @@ fn ray_color(ray: Ray<f32>, world: &World, max_depth: u32, rng: &mut impl Rng) -
         let interval = Interval::new(0.001, f32::INFINITY);
 
         if let Some(ray_hit) = world.raycast(next_ray, interval) {
-            if let Some(scatter_result) = ray_hit.material.scatter(next_ray, ray_hit, rng) {
+            if let Some(scatter_result) = ray_hit.material.scatter(next_ray, &ray_hit, rng) {
                 accumulated_color *= scatter_result.attenuation;
                 next_ray = scatter_result.scattered;
             } else {
@@ -81,7 +81,7 @@ fn main() {
     let amount_of_samples = 50;
     let max_depth = 50;
 
-    let Scene { camera, spheres } = scene_3();
+    let Scene { camera, spheres } = two_perlin_spheres_scene();
     let viewport = calculate_viewport(camera, image_size);
 
     let spheres_bvh = BvhNode::new(&spheres, &mut thread_rng());

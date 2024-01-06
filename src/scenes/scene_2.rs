@@ -1,4 +1,5 @@
 use crate::camera::Camera;
+use crate::materials::Texture;
 use crate::scenes::Scene;
 use crate::{materials::Material, sphere::Sphere};
 use std::f32::consts::PI;
@@ -23,14 +24,14 @@ pub fn scene_2() -> Scene {
             center: Vec3::new(-radius, 0., -1.),
             radius,
             material: Material::Diffuse {
-                albedo: Rgb::new(0., 0., 1.),
+                albedo: Texture::solid(Rgb::new(0., 0., 1.)),
             },
         },
         Sphere {
             center: Vec3::new(radius, 0., -1.),
             radius,
             material: Material::Diffuse {
-                albedo: Rgb::new(1., 0., 0.),
+                albedo: Texture::solid(Rgb::new(1., 0., 0.)),
             },
         },
     ];

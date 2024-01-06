@@ -1,4 +1,5 @@
 use crate::camera::Camera;
+use crate::materials::Texture;
 use crate::scenes::Scene;
 use crate::{extensions::RgbExt, materials::Material, sphere::Sphere};
 use rand::{thread_rng, Rng};
@@ -22,7 +23,8 @@ pub fn scene_3() -> Scene {
             center: Vec3::new(0., -1000., 0.),
             radius: 1000.,
             material: Material::Diffuse {
-                albedo: Rgb::new(0.5, 0.5, 0.5),
+                // albedo: Texture::solid(Rgb::new(0.5, 0.5, 0.5)),
+                albedo: Texture::checker(Rgb::new(0.2, 0.3, 0.1), Rgb::new(0.9, 0.9, 0.9), 0.32),
             },
         },
         // Center sphere
@@ -38,7 +40,7 @@ pub fn scene_3() -> Scene {
             center: Vec3::new(-4., 1., 0.),
             radius: 1.,
             material: Material::Diffuse {
-                albedo: Rgb::new(0.4, 0.2, 0.1),
+                albedo: Texture::solid(Rgb::new(0.4, 0.2, 0.1)),
             },
         },
         // Right sphere
@@ -46,7 +48,7 @@ pub fn scene_3() -> Scene {
             center: Vec3::new(4., 1., 0.),
             radius: 1.,
             material: Material::Metal {
-                albedo: Rgb::new(0.7, 0.6, 0.5),
+                albedo: Texture::solid(Rgb::new(0.7, 0.6, 0.5)),
                 fuzz: 0.,
             },
         },
@@ -66,7 +68,7 @@ pub fn scene_3() -> Scene {
             if center.distance(Vec3::new(4., 0.2, 0.)) > 0.9 {
                 if choose_material < 0.8 {
                     // Diffuse
-                    let albedo = Rgb::random(rng) * Rgb::random(rng);
+                    let albedo = Texture::solid(Rgb::random(rng) * Rgb::random(rng));
 
                     spheres.push(Sphere {
                         center,
@@ -76,7 +78,7 @@ pub fn scene_3() -> Scene {
                 } else if choose_material < 0.95 {
                     // Metal
                     let mut random = || rng.gen_range(0.5..1.);
-                    let albedo = Rgb::new(random(), random(), random());
+                    let albedo = Texture::solid(Rgb::new(random(), random(), random()));
                     let fuzz = rng.gen_range(0. ..0.5);
 
                     spheres.push(Sphere {

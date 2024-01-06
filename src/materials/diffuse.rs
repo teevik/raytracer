@@ -4,9 +4,11 @@ use crate::{
 };
 use rand::Rng;
 use std::option::Option;
-use vek::{Ray, Rgb, Vec3};
+use vek::{Ray, Vec3};
 
-pub fn scatter(albedo: Rgb<f32>, ray_hit: RayHit, rng: &mut impl Rng) -> Option<ScatterResult> {
+use super::Texture;
+
+pub fn scatter(albedo: &Texture, ray_hit: &RayHit, rng: &mut impl Rng) -> Option<ScatterResult> {
     let mut scatter_direction = ray_hit.normal + Vec3::random_unit_vector(rng);
 
     // Catch degenerate scatter direction
@@ -15,7 +17,7 @@ pub fn scatter(albedo: Rgb<f32>, ray_hit: RayHit, rng: &mut impl Rng) -> Option<
     }
 
     let scattered = Ray::new(ray_hit.point, scatter_direction);
-    let attenuation = albedo;
+    let attenuation = albedo.color_at(ray_hit.uv, ray_hit.point);
 
     Some(ScatterResult {
         scattered,

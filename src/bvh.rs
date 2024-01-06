@@ -75,7 +75,7 @@ pub enum BvhNode<T> {
     },
 }
 
-impl<T: Hittable + Copy> BvhNode<T> {
+impl<T: Hittable + Clone> BvhNode<T> {
     pub fn new(objects: &[T], rng: &mut impl Rng) -> Self {
         let axis = rng.gen_range(0..=2);
         let compare_bounding_boxes =
@@ -84,14 +84,14 @@ impl<T: Hittable + Copy> BvhNode<T> {
         let compare_objects =
             |a: &T, b: &T| compare_bounding_boxes(a.bounding_box(), b.bounding_box());
 
-        match objects {
+        match &objects {
             &[] => {
                 panic!("Empty list of objects")
             }
 
             &[object] => BvhNode::Leaf {
                 bounding_box: object.bounding_box(),
-                left: object,
+                left: object.clone(),
                 right: None,
             },
 
@@ -104,8 +104,8 @@ impl<T: Hittable + Copy> BvhNode<T> {
 
                 BvhNode::Leaf {
                     bounding_box: Aabb::combine(left.bounding_box(), right.bounding_box()),
-                    left,
-                    right: Some(right),
+                    left: left.clone(),
+                    right: Some(right.clone()),
                 }
             }
 

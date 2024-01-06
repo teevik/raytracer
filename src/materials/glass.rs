@@ -13,7 +13,7 @@ fn reflectance(cosine: f32, refraction_ratio: f32) -> f32 {
 pub fn scatter(
     refraction_index: f32,
     ray: Ray<f32>,
-    ray_hit: RayHit,
+    ray_hit: &RayHit,
     rng: &mut impl Rng,
 ) -> Option<ScatterResult> {
     let refraction_ratio = match ray_hit.face {
