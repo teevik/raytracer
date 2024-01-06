@@ -1,28 +1,26 @@
 use crate::{
     bvh::Aabb,
-    data::{Face, RayHit, Raycastable},
+    data::{Face, Hittable, RayHit},
     extensions::RayExt,
     interval::Interval,
     materials::Material,
 };
 use vek::{Ray, Vec3};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
     pub material: Material,
 }
 
-impl Sphere {
-    pub fn get_aabb(self) -> Aabb {
+impl Hittable for Sphere {
+    fn bounding_box(&self) -> Aabb {
         let radius = Vec3::broadcast(self.radius);
 
         Aabb::from_extremes(self.center - radius, self.center + radius)
     }
-}
 
-impl Raycastable for Sphere {
     fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
         let center_to_origin = ray.origin - self.center;
         let a = ray.direction.magnitude_squared();

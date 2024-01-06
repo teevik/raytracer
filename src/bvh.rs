@@ -1,12 +1,16 @@
 use std::mem::swap;
 
+use rand::Rng;
 use vek::{Ray, Vec3};
 
-use crate::interval::Interval;
+use crate::{
+    data::{Hittable, RayHit},
+    interval::Interval,
+};
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Aabb {
-    pub axes: Vec3<Interval>,
+    axes: Vec3<Interval>,
 }
 
 impl Aabb {
@@ -30,7 +34,7 @@ impl Aabb {
         }
     }
 
-    pub fn raycast(self, ray: Ray<f32>, interval: Interval) -> bool {
+    pub fn ray_hits(self, ray: Ray<f32>, interval: Interval) -> bool {
         let mut interval = interval;
 
         for axis in 0..3 {
@@ -56,10 +60,141 @@ impl Aabb {
     }
 }
 
-struct BvhNode<T> {
-    value: T,
-    bounding_box: Aabb,
+#[derive(Debug)]
+pub enum BvhNode<T> {
+    Leaf {
+        bounding_box: Aabb,
+        left: T,
+        right: Option<T>,
+    },
 
-    left: Option<Box<BvhNode<T>>>,
-    right: Option<Box<BvhNode<T>>>,
+    Branch {
+        bounding_box: Aabb,
+        left: Box<BvhNode<T>>,
+        right: Box<BvhNode<T>>,
+    },
+}
+
+impl<T: Hittable + Copy> BvhNode<T> {
+    pub fn new(objects: &[T], rng: &mut impl Rng) -> Self {
+        let axis = rng.gen_range(0..=2);
+        let compare_bounding_boxes =
+            |a: Aabb, b: Aabb| a.axes[axis].min.partial_cmp(&b.axes[axis].min).unwrap();
+
+        let compare_objects =
+            |a: &T, b: &T| compare_bounding_boxes(a.bounding_box(), b.bounding_box());
+
+        match objects {
+            &[] => {
+                panic!("Empty list of objects")
+            }
+
+            &[object] => BvhNode::Leaf {
+                bounding_box: object.bounding_box(),
+                left: object,
+                right: None,
+            },
+
+            &[left, right] => {
+                let [left, right] = if compare_objects(&left, &right).is_lt() {
+                    [left, right]
+                } else {
+                    [right, left]
+                };
+
+                BvhNode::Leaf {
+                    bounding_box: Aabb::combine(left.bounding_box(), right.bounding_box()),
+                    left,
+                    right: Some(right),
+                }
+            }
+
+            objects => {
+                let mut objects = objects.to_vec();
+                objects.sort_unstable_by(compare_objects);
+
+                let middle = objects.len() / 2;
+
+                let (left_objects, right_objects) = objects.split_at(middle);
+
+                let left = Box::new(BvhNode::new(left_objects, rng));
+                let right = Box::new(BvhNode::new(right_objects, rng));
+
+                BvhNode::Branch {
+                    bounding_box: Aabb::combine(left.bounding_box(), right.bounding_box()),
+                    left,
+                    right,
+                }
+            }
+        }
+    }
+}
+
+impl<T: Hittable> Hittable for BvhNode<T> {
+    fn bounding_box(&self) -> Aabb {
+        match self {
+            BvhNode::Leaf { bounding_box, .. } => *bounding_box,
+            BvhNode::Branch { bounding_box, .. } => *bounding_box,
+        }
+    }
+
+    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
+        match self {
+            BvhNode::Leaf {
+                bounding_box,
+                left,
+                right,
+            } => {
+                if !bounding_box.ray_hits(ray, interval) {
+                    return None;
+                }
+
+                let hit_left = left.raycast(ray, interval);
+
+                let interval = if let Some(ray_hit) = &hit_left {
+                    Interval::new(interval.min, ray_hit.distance)
+                } else {
+                    interval
+                };
+
+                let hit_right = right
+                    .as_ref()
+                    .and_then(|right| right.raycast(ray, interval));
+
+                // Prioritize hit_right since it will always be closer than hit_left
+                if hit_right.is_some() {
+                    hit_right
+                } else {
+                    hit_left
+                }
+            }
+
+            BvhNode::Branch {
+                bounding_box,
+                left,
+                right,
+            } => {
+                if !bounding_box.ray_hits(ray, interval) {
+                    return None;
+                }
+
+                let hit_left = left.raycast(ray, interval);
+
+                let interval = if let Some(ray_hit) = &hit_left {
+                    Interval::new(interval.min, ray_hit.distance)
+                } else {
+                    interval
+                };
+
+                let hit_right = right.raycast(ray, interval);
+
+                // Prioritize hit_right since it will always be closer than hit_left
+                if hit_right.is_some() {
+                    hit_right
+                } else {
+                    hit_left
+                }
+            }
+        }
+    }
 }

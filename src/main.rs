@@ -7,42 +7,44 @@ mod materials;
 mod scenes;
 mod sphere;
 
-use crate::camera::calculate_viewport;
 use crate::data::RayHit;
 use crate::extensions::Vec2Ext;
-use crate::scenes::scene_1::scene_1;
+use crate::scenes::scene_3::scene_3;
 use crate::scenes::Scene;
-use crate::sphere::Sphere;
-use data::Raycastable;
+use crate::{bvh::BvhNode, camera::calculate_viewport};
+use bvh::Aabb;
+use data::Hittable;
 use indicatif::ParallelProgressIterator;
 use interval::Interval;
+use rand::thread_rng;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use sphere::Sphere;
 use std::{fs, time::Instant};
 use vek::{Ray, Rgb, Vec2, Vec3};
 
-pub fn raycast_spheres(spheres: &[Sphere], ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
-    let mut closest_hit = None;
-    let mut closest_distance = interval.max;
-
-    for sphere in spheres {
-        if let Some(hit) = sphere.raycast(ray, Interval::new(interval.min, closest_distance)) {
-            closest_distance = hit.distance;
-            closest_hit = Some(hit);
-        }
-    }
-
-    closest_hit
+pub struct World {
+    pub spheres: BvhNode<Sphere>,
 }
 
-fn ray_color(ray: Ray<f32>, spheres: &[Sphere], max_depth: u32, rng: &mut impl Rng) -> Vec3<f32> {
+impl Hittable for World {
+    fn bounding_box(&self) -> Aabb {
+        self.spheres.bounding_box()
+    }
+
+    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
+        self.spheres.raycast(ray, interval)
+    }
+}
+
+fn ray_color(ray: Ray<f32>, world: &World, max_depth: u32, rng: &mut impl Rng) -> Vec3<f32> {
     let mut accumulated_color = Vec3::one();
     let mut next_ray = ray;
 
     for _ in 0..max_depth {
         let interval = Interval::new(0.001, f32::INFINITY);
 
-        if let Some(ray_hit) = raycast_spheres(spheres, next_ray, interval) {
+        if let Some(ray_hit) = world.raycast(next_ray, interval) {
             if let Some(scatter_result) = ray_hit.material.scatter(next_ray, ray_hit, rng) {
                 accumulated_color *= scatter_result.attenuation;
                 next_ray = scatter_result.scattered;
@@ -79,8 +81,14 @@ fn main() {
     let amount_of_samples = 50;
     let max_depth = 50;
 
-    let Scene { camera, spheres } = scene_1();
+    let Scene { camera, spheres } = scene_3();
     let viewport = calculate_viewport(camera, image_size);
+
+    let spheres_bvh = BvhNode::new(&spheres, &mut thread_rng());
+
+    let world = World {
+        spheres: spheres_bvh,
+    };
 
     // Raytracing
     let mut ppm = String::new();
@@ -116,7 +124,7 @@ fn main() {
 
                     let ray = Ray::new(ray_origin, ray_direction);
 
-                    color += ray_color(ray, &spheres, max_depth, &mut rng);
+                    color += ray_color(ray, &world, max_depth, &mut rng);
                 }
 
                 color /= amount_of_samples as f32;

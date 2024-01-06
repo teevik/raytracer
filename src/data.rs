@@ -1,7 +1,9 @@
-use crate::{interval::Interval, materials::Material};
+use crate::{bvh::Aabb, interval::Interval, materials::Material};
 use vek::{Ray, Rgb, Vec3};
 
-pub trait Raycastable {
+pub trait Hittable {
+    fn bounding_box(&self) -> Aabb;
+
     fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit>;
 }
 
