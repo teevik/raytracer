@@ -30,8 +30,8 @@ impl Aabb {
         }
     }
 
-    pub fn raycast(self, ray: Ray<f32>, range: Interval) -> bool {
-        let mut range = range;
+    pub fn raycast(self, ray: Ray<f32>, interval: Interval) -> bool {
+        let mut interval = interval;
 
         for axis in 0..3 {
             let inverse_direction = 1. / ray.direction[axis];
@@ -44,10 +44,10 @@ impl Aabb {
                 swap(&mut t0, &mut t1);
             }
 
-            range.min = f32::max(t0, range.min);
-            range.max = f32::min(t1, range.max);
+            interval.min = f32::max(t0, interval.min);
+            interval.max = f32::min(t1, interval.max);
 
-            if range.max <= range.min {
+            if interval.max <= interval.min {
                 return false;
             }
         }

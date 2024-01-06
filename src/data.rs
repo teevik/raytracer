@@ -1,8 +1,8 @@
-use crate::materials::Material;
+use crate::{interval::Interval, materials::Material};
 use vek::{Ray, Rgb, Vec3};
 
 pub trait Raycastable {
-    fn raycast(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit>;
+    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit>;
 }
 
 #[derive(Debug, Clone, Copy)]

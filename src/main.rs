@@ -13,19 +13,20 @@ use crate::extensions::Vec2Ext;
 use crate::scenes::scene_1::scene_1;
 use crate::scenes::Scene;
 use crate::sphere::Sphere;
+use data::Raycastable;
 use indicatif::ParallelProgressIterator;
+use interval::Interval;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::ops::Range;
 use std::{fs, time::Instant};
 use vek::{Ray, Rgb, Vec2, Vec3};
 
-pub fn raycast_spheres(spheres: &[Sphere], ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
+pub fn raycast_spheres(spheres: &[Sphere], ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
     let mut closest_hit = None;
-    let mut closest_distance = range.end;
+    let mut closest_distance = interval.max;
 
     for sphere in spheres {
-        if let Some(hit) = sphere.raycast(ray, range.start..closest_distance) {
+        if let Some(hit) = sphere.raycast(ray, Interval::new(interval.min, closest_distance)) {
             closest_distance = hit.distance;
             closest_hit = Some(hit);
         }
@@ -39,7 +40,9 @@ fn ray_color(ray: Ray<f32>, spheres: &[Sphere], max_depth: u32, rng: &mut impl R
     let mut next_ray = ray;
 
     for _ in 0..max_depth {
-        if let Some(ray_hit) = raycast_spheres(spheres, next_ray, 0.001..f32::INFINITY) {
+        let interval = Interval::new(0.001, f32::INFINITY);
+
+        if let Some(ray_hit) = raycast_spheres(spheres, next_ray, interval) {
             if let Some(scatter_result) = ray_hit.material.scatter(next_ray, ray_hit, rng) {
                 accumulated_color *= scatter_result.attenuation;
                 next_ray = scatter_result.scattered;

@@ -1,10 +1,10 @@
 use crate::{
     bvh::Aabb,
-    data::{Face, RayHit},
+    data::{Face, RayHit, Raycastable},
     extensions::RayExt,
+    interval::Interval,
     materials::Material,
 };
-use std::ops::Range;
 use vek::{Ray, Vec3};
 
 #[derive(Debug, Clone)]
@@ -20,8 +20,10 @@ impl Sphere {
 
         Aabb::from_extremes(self.center - radius, self.center + radius)
     }
+}
 
-    pub fn raycast(&self, ray: Ray<f32>, range: Range<f32>) -> Option<RayHit> {
+impl Raycastable for Sphere {
+    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
         let center_to_origin = ray.origin - self.center;
         let a = ray.direction.magnitude_squared();
         let half_b = Vec3::dot(center_to_origin, ray.direction);
@@ -34,12 +36,12 @@ impl Sphere {
 
         let discriminant_sqrt = discriminant.sqrt();
 
-        // Find the nearest root that lies in the acceptable range
+        // Find the nearest root that lies in the acceptable interval
         let mut root = (-half_b - discriminant_sqrt) / a;
-        if !range.contains(&root) {
+        if !interval.contains(root) {
             root = (-half_b + discriminant_sqrt) / a;
 
-            if !range.contains(&root) {
+            if !interval.contains(root) {
                 return None;
             }
         }

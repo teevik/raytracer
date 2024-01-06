@@ -5,7 +5,7 @@ pub struct Interval {
 }
 
 impl Interval {
-    pub fn new(start: f32, end: f32) -> Self {
+    pub const fn new(start: f32, end: f32) -> Self {
         Self {
             min: start,
             max: end,
