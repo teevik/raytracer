@@ -1,7 +1,7 @@
-use crate::data::{Face, RayHit, ScatterResult};
+use crate::data::{Face, Ray, RayHit, ScatterResult};
 use rand::Rng;
 use std::option::Option;
-use vek::{Ray, Rgb, Vec3};
+use vek::{Rgb, Vec3};
 
 fn reflectance(cosine: f32, refraction_ratio: f32) -> f32 {
     let r0 = (1. - refraction_ratio) / (1. + refraction_ratio);
@@ -12,7 +12,7 @@ fn reflectance(cosine: f32, refraction_ratio: f32) -> f32 {
 
 pub fn scatter(
     refraction_index: f32,
-    ray: Ray<f32>,
+    ray: Ray,
     ray_hit: &RayHit,
     rng: &mut impl Rng,
 ) -> Option<ScatterResult> {

@@ -12,6 +12,10 @@ impl Interval {
         }
     }
 
+    pub fn size(self) -> f32 {
+        self.max - self.min
+    }
+
     pub fn combine(a: Self, b: Self) -> Self {
         Self::new(f32::min(a.min, b.min), f32::max(a.max, b.max))
     }

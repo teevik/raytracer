@@ -1,16 +1,19 @@
-use vek::{Vec2, Vec3};
+use vek::{Rgb, Vec2, Vec3};
 
+#[derive(Debug, Clone, Default)]
 pub struct Camera {
     pub position: Vec3<f32>,
     pub target: Vec3<f32>,
     pub up: Vec3<f32>,
 
+    pub background_color: Rgb<f32>,
     pub vertical_fov: f32,
     pub defocus_angle: f32,
     pub focus_distance: f32,
 }
 
 pub struct Viewport {
+    pub background_color: Rgb<f32>,
     pub origin: Vec3<f32>,
     pub upper_left_pixel_position: Vec3<f32>,
 
@@ -49,6 +52,7 @@ pub fn calculate_viewport(camera: Camera, image_size: Vec2<u32>) -> Viewport {
     let vertical_defocus_disk = v * defocus_radius;
 
     Viewport {
+        background_color: camera.background_color,
         origin: camera.position,
         upper_left_pixel_position,
 

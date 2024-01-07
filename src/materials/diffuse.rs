@@ -1,15 +1,11 @@
-use crate::{
-    data::{RayHit, ScatterResult},
-    extensions::Vec3Ext,
-};
+use crate::data::{Ray, RayHit, ScatterResult};
+use crate::extensions::RngExtension;
+use crate::texture::Texture;
 use rand::Rng;
 use std::option::Option;
-use vek::{Ray, Vec3};
-
-use super::Texture;
 
 pub fn scatter(albedo: &Texture, ray_hit: &RayHit, rng: &mut impl Rng) -> Option<ScatterResult> {
-    let mut scatter_direction = ray_hit.normal + Vec3::random_unit_vector(rng);
+    let mut scatter_direction = ray_hit.normal + rng.random_unit_vector();
 
     // Catch degenerate scatter direction
     if scatter_direction.is_approx_zero() {

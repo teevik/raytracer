@@ -1,8 +1,9 @@
 use std::mem::swap;
 
 use rand::Rng;
-use vek::{Ray, Vec3};
+use vek::Vec3;
 
+use crate::data::Ray;
 use crate::{
     data::{Hittable, RayHit},
     interval::Interval,
@@ -34,7 +35,21 @@ impl Aabb {
         }
     }
 
-    pub fn ray_hits(self, ray: Ray<f32>, interval: Interval) -> bool {
+    pub fn padded(self) -> Self {
+        const DELTA: f32 = 0.0001;
+
+        let axes = self.axes.map(|axis| {
+            if axis.size() >= DELTA {
+                axis
+            } else {
+                axis.expand(DELTA)
+            }
+        });
+
+        Self { axes }
+    }
+
+    pub fn ray_hits(self, ray: Ray, interval: Interval) -> bool {
         let mut interval = interval;
 
         for axis in 0..3 {
@@ -60,6 +75,13 @@ impl Aabb {
     }
 }
 
+impl FromIterator<Aabb> for Option<Aabb> {
+    fn from_iter<T: IntoIterator<Item = Aabb>>(iter: T) -> Self {
+        iter.into_iter()
+            .reduce(|acc, bounding_box| Aabb::combine(acc, bounding_box))
+    }
+}
+
 #[derive(Debug)]
 pub enum BvhNode<T> {
     Leaf {
@@ -76,7 +98,7 @@ pub enum BvhNode<T> {
 }
 
 impl<T: Hittable + Clone> BvhNode<T> {
-    pub fn new(objects: &[T], rng: &mut impl Rng) -> Self {
+    pub fn new(objects: &[T], rng: &mut impl Rng) -> Option<Self> {
         let axis = rng.gen_range(0..=2);
         let compare_bounding_boxes =
             |a: Aabb, b: Aabb| a.axes[axis].min.partial_cmp(&b.axes[axis].min).unwrap();
@@ -85,28 +107,26 @@ impl<T: Hittable + Clone> BvhNode<T> {
             |a: &T, b: &T| compare_bounding_boxes(a.bounding_box(), b.bounding_box());
 
         match &objects {
-            &[] => {
-                panic!("Empty list of objects")
-            }
+            &[] => None,
 
-            &[object] => BvhNode::Leaf {
+            &[object] => Some(BvhNode::Leaf {
                 bounding_box: object.bounding_box(),
                 left: object.clone(),
                 right: None,
-            },
+            }),
 
             &[left, right] => {
-                let [left, right] = if compare_objects(&left, &right).is_lt() {
+                let [left, right] = if compare_objects(left, right).is_lt() {
                     [left, right]
                 } else {
                     [right, left]
                 };
 
-                BvhNode::Leaf {
+                Some(BvhNode::Leaf {
                     bounding_box: Aabb::combine(left.bounding_box(), right.bounding_box()),
                     left: left.clone(),
                     right: Some(right.clone()),
-                }
+                })
             }
 
             objects => {
@@ -117,14 +137,14 @@ impl<T: Hittable + Clone> BvhNode<T> {
 
                 let (left_objects, right_objects) = objects.split_at(middle);
 
-                let left = Box::new(BvhNode::new(left_objects, rng));
-                let right = Box::new(BvhNode::new(right_objects, rng));
+                let left = Box::new(BvhNode::new(left_objects, rng).unwrap());
+                let right = Box::new(BvhNode::new(right_objects, rng).unwrap());
 
-                BvhNode::Branch {
+                Some(BvhNode::Branch {
                     bounding_box: Aabb::combine(left.bounding_box(), right.bounding_box()),
                     left,
                     right,
-                }
+                })
             }
         }
     }
@@ -138,7 +158,7 @@ impl<T: Hittable> Hittable for BvhNode<T> {
         }
     }
 
-    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
+    fn raycast(&self, ray: Ray, interval: Interval) -> Option<RayHit> {
         match self {
             BvhNode::Leaf {
                 bounding_box,

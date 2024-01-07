@@ -8,8 +8,5 @@ image = "0.24"
 indicatif = { version = "0.17", features = ["rayon"] }
 noise = { version = "0.8", features = ["images"] }
 rand = { version="0.8", features = ["small_rng"] }
-rayon = "1.8"
-vek = { version = "0.16", features = ["image"] }
-
-[profile.release]
-debug = true
+rayon = "1"
+vek = "0.16"

@@ -1,19 +1,34 @@
-use std::f32::consts::PI;
-
+use crate::data::Ray;
 use crate::{
     bvh::Aabb,
     data::{Face, Hittable, RayHit},
-    extensions::RayExt,
     interval::Interval,
     materials::Material,
 };
-use vek::{Ray, Vec2, Vec3};
+use std::f32::consts::PI;
+use vek::{Vec2, Vec3};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
+
+    pub bounding_box: Aabb,
     pub material: Material,
+}
+
+impl Sphere {
+    pub fn new(center: Vec3<f32>, radius: f32, material: Material) -> Self {
+        let size = Vec3::broadcast(radius);
+        let bounding_box = Aabb::from_extremes(center - size, center + size);
+
+        Self {
+            center,
+            radius,
+            bounding_box,
+            material,
+        }
+    }
 }
 
 fn calculate_sphere_uv(point: Vec3<f32>) -> Vec2<f32> {
@@ -28,12 +43,10 @@ fn calculate_sphere_uv(point: Vec3<f32>) -> Vec2<f32> {
 
 impl Hittable for Sphere {
     fn bounding_box(&self) -> Aabb {
-        let radius = Vec3::broadcast(self.radius);
-
-        Aabb::from_extremes(self.center - radius, self.center + radius)
+        self.bounding_box
     }
 
-    fn raycast(&self, ray: Ray<f32>, interval: Interval) -> Option<RayHit> {
+    fn raycast(&self, ray: Ray, interval: Interval) -> Option<RayHit> {
         let center_to_origin = ray.origin - self.center;
         let a = ray.direction.magnitude_squared();
         let half_b = Vec3::dot(center_to_origin, ray.direction);
